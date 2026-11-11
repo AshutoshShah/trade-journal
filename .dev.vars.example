@@ -1,0 +1,3 @@
+# The password for your journal, 12 characters or more. Anyone with it can read and change your trades.
+# The journal refuses to sign in while this example value is in use.
+APP_PASSWORD=change-me-to-a-long-password

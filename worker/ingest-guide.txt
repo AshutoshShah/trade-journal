@@ -1,0 +1,198 @@
+# Trade journal: ingest API (v1)
+
+You are sending a trader's raw futures executions to their private journal.
+Your job is faithful transcription, not analysis: send what the log shows. The
+trader may scale in and out of positions, so every individual fill matters; the
+journal works out positions, P&L and statistics from the fills itself.
+
+Base URL:   {{BASE_URL}}
+Time zone:  {{TIME_ZONE}} (the journal's; used for times sent without an offset)
+Auth:       send the API key on every request, in either header
+              X-API-Key: <key>
+              Authorization: Bearer <key>
+
+## Endpoints
+
+  GET  /ping                     Check the key works. Returns the journal's time zone and the time now.
+  GET  /help                     This document.
+  POST /day                      Send one trading day (or one part of it): fills, trades, screenshots.
+  GET  /day?date=YYYY-MM-DD      Read back what is stored for that day, every part included.
+                                 Add &raw=1 to include the original log text.
+  GET  /days?limit=30            List the sends stored, newest first.
+  POST /screenshot?date=YYYY-MM-DD&trade_ref=T1&caption=...
+                                 Attach one image on its own (see Screenshots).
+
+Everything you send is stored under your key's name, so two agents never
+overwrite each other.
+
+## Limits
+
+  One request          10 MB of JSON
+  Fills                2,000 per request (split a bigger day into parts)
+  Screenshots inline   10 per request, 5 MB each after decoding
+  Screenshot alone     5 MB, one per request to POST /screenshot
+  Original log         about 900 KB of text per request (longer is cut, with a warning)
+  Parts                up to 50 per day
+
+A request over a limit is refused with 413 and stores nothing. The fix is
+always the same: send less per request. Split the fills into parts, and send
+images one at a time to POST /screenshot.
+
+## Rules
+
+1. Send each fill's full date and time with seconds, e.g. "2026-10-05 19:10:23",
+   as the log shows it. Times without an offset are read in {{TIME_ZONE}}.
+   If the log is in another zone, either add "time_zone": "<IANA name>" (such
+   as "America/Chicago") to the request, or give each time an offset
+   ("2026-10-05T19:10:23-05:00"). Do not convert times yourself. The server
+   converts to UTC and New York time, daylight saving included.
+
+2. Send every individual fill, each partial entry and each partial exit, never
+   an averaged summary. A trade that scaled in twice and out three times has
+   five fills.
+
+3. Group fills into trades if the log makes that clear, labelled T1, T2, ... in
+   the order they started. If you cannot tell which trade a fill belongs to,
+   put it in the top-level "fills" list instead of guessing. Either way works:
+   the journal groups fills into positions on its own.
+
+4. A fill's "side" is the order side: "buy" or "sell". Not long or short:
+   closing a long is a sell.
+
+5. Put the original log in "raw_log", verbatim. If the trader sent a screenshot
+   of the log, transcribe it as faithfully as you can.
+
+6. "date" is the trading day, normally the date of the day's first fill in the
+   time zone the times are in. Send the same "date" on every part of a day.
+
+7. Send each platform or broker separately, with "platform" set to its name
+   (for example "tradovate", "ninjatrader", "rithmic"). Re-sending a date and
+   platform replaces what was stored (see Replacing and parts); the earlier
+   send is kept for audit, never deleted.
+
+8. Don't invent values and don't compute anything (no P&L, no averages). Leave
+   out any field the log does not show.
+
+9. Read the "warnings" in the response. Each fill is echoed back with its local,
+   UTC and New York time; check them. If something is wrong, fix it and send
+   the day again.
+
+Instruments: the journal computes P&L for NQ, MNQ, ES and MES. Send fills for
+other instruments as they are; they are stored, but not yet turned into
+positions.
+
+## POST /day
+
+  Content-Type: application/json
+
+  {
+    "date": "2026-10-05",
+    "platform": "tradovate",
+    "account": "optional account name or id",
+    "time_zone": "optional, an IANA name such as America/New_York",
+    "raw_log": "the original log text, verbatim",
+    "notes": "optional: anything the trader said about the day",
+    "trades": [
+      {
+        "ref": "T1",
+        "instrument": "MNQZ6",
+        "direction": "long",
+        "stop": 21480,
+        "target": 21703,
+        "notes": "optional",
+        "fills": [
+          { "time": "2026-10-05 10:10:23", "side": "buy",  "qty": 2, "price": 21555.25 },
+          { "time": "2026-10-05 10:14:02", "side": "buy",  "qty": 1, "price": 21548.00 },
+          { "time": "2026-10-05 10:40:11", "side": "sell", "qty": 2, "price": 21600.00 },
+          { "time": "2026-10-05 11:02:45", "side": "sell", "qty": 1, "price": 21610.50 }
+        ]
+      }
+    ],
+    "fills": [ ...fills you could not put in a trade, same shape... ],
+    "screenshots": [
+      { "trade_ref": "T1", "caption": "entry chart", "data_base64": "<base64 of a PNG or JPEG>" }
+    ]
+  }
+
+direction, stop, target and notes are optional: include them only if the
+trader or the log states them. Any other field on a trade or a fill
+(commission, order_type, fill_id, order_id, ...) is accepted and kept as sent.
+
+## Replacing and parts
+
+A day can go in one request or in several numbered parts.
+
+Whole day (no "part"): replaces everything stored for that date and platform,
+every part included.
+
+In parts: add "part" (1, 2, 3 ...) and, if you know it, "parts" (the total) to
+each request. Keep every other field the same, and give each part its own slice
+of the fills and its own slice of the log in "raw_log".
+
+  { "date": "2026-10-05", "platform": "tradovate", "part": 1, "parts": 3, "fills": [ ...first 2,000... ], "raw_log": "..." }
+  { "date": "2026-10-05", "platform": "tradovate", "part": 2, "parts": 3, "fills": [ ...next 2,000... ], "raw_log": "..." }
+  { "date": "2026-10-05", "platform": "tradovate", "part": 3, "parts": 3, "fills": [ ...the rest... ],     "raw_log": "..." }
+
+- A part replaces an earlier send of the same part number, and a whole-day send
+  for that date. It never touches the other parts.
+- So a part that failed or timed out can simply be sent again.
+- The response lists "parts_received" and "parts_missing", and "complete" once
+  every part up to "parts" is in.
+- A trade may run across two parts: put each fill in the part where it falls by
+  time, under the same "ref". Whether every position closes is checked for the
+  whole day once all parts are in, not per part.
+- To start over, send the day whole, or send part 1 to "parts" again.
+
+## Screenshots
+
+Screenshots are stored only if the journal has an image bucket; if it does not,
+the response says so in "warnings" and the fills are stored as normal.
+
+Either inline in POST /day, base64-encoded as above, or one at a time to
+POST /screenshot?date=YYYY-MM-DD&trade_ref=T1&caption=... with the body as:
+  - the raw image bytes  (Content-Type: image/png or image/jpeg), or
+  - multipart/form-data with the image in a "file" field, or
+  - JSON: { "date": "...", "trade_ref": "T1", "caption": "...", "data_base64": "..." }
+
+trade_ref and caption are optional. PNG, JPEG, WEBP, GIF or HEIC. Screenshots
+belong to the day, not to a send, so re-sending a day's trades keeps them, and
+the same image sent twice is stored once.
+
+## Responses
+
+  201  Stored. Includes batch_id, the time zone used, counts, every fill with
+       local/utc/et times, warnings, and for a part: part, parts,
+       parts_received, parts_missing, complete.
+  400  Malformed request; the error says what is wrong. Nothing was stored.
+  401  Missing or wrong key.
+  413  Over a limit (see Limits). Nothing was stored; send less per request.
+  500  Something failed on the server. Nothing was stored; wait a minute and
+       send the same request again.
+
+## Questions
+
+Do I need to send price data?
+  No. The journal fetches one-minute NQ and ES bars on its own.
+
+Is it safe to send the same day twice?
+  Yes. A whole-day send replaces the earlier one, and a part replaces only the
+  same part. The journal never counts a day twice.
+
+The trader sent the log of an earlier day. Which "date" do I use?
+  The date of that day's first fill, not today's date.
+
+The log has no seconds, or no date on each line.
+  Send what it shows. Times without a date take "date"; check the warning for
+  any fill after midnight and fix its date.
+
+I got a warning that a position is not flat.
+  A trade's buys and sells do not net to zero. Check the log for a missing or
+  doubled fill and send the day again. In a multi-part send this is only
+  checked once all parts are in.
+
+The request timed out and I do not know whether it was stored.
+  Send it again. Replacement makes a repeat harmless. GET /day?date=... shows
+  what is stored.
+
+How do I remove a day?
+  The trader removes it in the journal. The API only adds and replaces.

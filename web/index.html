@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="A private trading journal for futures day traders." />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="Trade journal" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Trade journal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+      *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+      :root {
+        --bg:      #000000;
+        --card:    #101012;
+        --card2:   #17171a;
+        --card3:   #232326;
+        --border:  #2b2b2f;
+        --accent:  #ccba83;
+        --text:    #ecedee;
+        --sub:     #a1a1aa;
+        --muted:   #71717a;
+        --sans:    'Sora', system-ui, sans-serif;
+        --mono:    'JetBrains Mono', monospace;
+      }
+
+      html { font-size: 15px; }
+
+      body {
+        background: var(--bg);
+        font-family: var(--sans);
+        color: var(--text);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        line-height: 1.5;
+        text-rendering: optimizeLegibility;
+      }
+
+      /* Scrollbars */
+      ::-webkit-scrollbar { width: 4px; height: 4px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #2b2b2f; border-radius: 4px; }
+
+      /* Selection */
+      ::selection { background: rgba(204,186,131,0.22); color: #ecedee; }
+
+      /* Inputs — prevent iOS zoom */
+      input, select, textarea { font-size: 16px; }
+
+      /* Placeholders */
+      ::placeholder { color: #52525b; opacity: 1; }
+
+      /* Native select option bg */
+      option { background: #101012; color: #ecedee; }
+
+      /* Page enter */
+      #root { animation: pageIn 0.2s ease; }
+      @keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+      /* Safe area padding for mobile nav */
+      .safe-bottom { padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
+
+      /* Subtle grain texture */
+      body::after {
+        content: '';
+        position: fixed; inset: 0;
+        pointer-events: none; z-index: 9999;
+        opacity: 0.02;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        background-size: 140px 140px;
+      }
+
+      @media (max-width: 768px), (prefers-reduced-motion: reduce) {
+        body::after { display: none; }
+        #root { animation: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

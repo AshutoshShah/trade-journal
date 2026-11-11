@@ -1,0 +1,36 @@
+{
+  "name": "trade-journal",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A private trading journal for futures day traders that runs free on Cloudflare. Agents and scripts send fills; the journal builds positions, statistics and MAE/MFE.",
+  "license": "MIT",
+  "scripts": {
+    "build": "npm --prefix web ci && npm --prefix web run build",
+    "dev": "wrangler dev",
+    "dev:web": "npm --prefix web run dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "test": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "wrangler": "^4.45.0"
+  },
+  "cloudflare": {
+    "bindings": {
+      "APP_PASSWORD": {
+        "description": "The password for your journal, 12 characters or more. Anyone with it can read and change your trades."
+      },
+      "AUTH": {
+        "description": "Leave as \"password\". Set to \"access\" to sign in with Cloudflare Access instead (then set ACCESS_TEAM_DOMAIN and ACCESS_AUD)."
+      }
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AshutoshShah/trade-journal.git"
+  }
+}

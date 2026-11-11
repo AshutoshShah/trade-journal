@@ -1,0 +1,20 @@
+# Cloudflare / wrangler
+.wrangler/
+.dev.vars
+.dev.vars.*
+dist/
+
+# secrets — never commit
+*.secret
+.env
+.env.*
+
+# deps
+node_modules/
+
+# OS / editor
+.DS_Store
+*.log
+
+# The example secrets file is meant to be committed.
+!.dev.vars.example

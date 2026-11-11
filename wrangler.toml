@@ -1,0 +1,49 @@
+# Trade journal: one Cloudflare Worker serving the app and its API, with a D1
+# database. Everything here fits Cloudflare's free plan. See README.md.
+name = "trade-journal"
+main = "worker/index.js"
+compatibility_date = "2026-11-01"
+workers_dev = true
+preview_urls = false
+
+# Builds the web app into web/dist before every deploy and local run.
+[build]
+command = "npm run build"
+watch_dir = "web/src"
+
+# The built web app. The Worker answers /api and /ingest itself and serves these
+# files for everything else.
+[assets]
+directory = "./web/dist"
+binding = "ASSETS"
+
+# The database. No database_id is needed: `wrangler deploy` (4.45 or later) and
+# the Deploy to Cloudflare button create it on first deploy. The Worker creates
+# its own tables on first use.
+[[d1_databases]]
+binding = "DB"
+database_name = "trade-journal"
+
+# Optional: screenshots. R2 has a free tier, but Cloudflare asks for a payment
+# method before R2 can be turned on. Uncomment to store screenshots.
+# [[r2_buckets]]
+# binding = "IMG"
+# bucket_name = "trade-journal-images"
+
+[vars]
+# How people sign in to the pages:
+#   "password" (the default): the APP_PASSWORD secret.
+#   "access": Cloudflare Access. Also set ACCESS_TEAM_DOMAIN (such as
+#   "yourteam.cloudflareaccess.com") and ACCESS_AUD (the application's audience
+#   tag). The Worker checks every request's Access token against them.
+# Agents use API keys either way.
+AUTH = "password"
+
+[observability]
+enabled = true
+
+# Secrets (set with `npx wrangler secret put NAME`, never written here):
+#   APP_PASSWORD        required: the password for the journal
+#   SESSION_SECRET      optional: extra key material for sign-in cookies
+#   ERROR_WEBHOOK_URL   optional: a webhook that takes {"content": "..."} for server errors
+#   INGEST_KEY_<NAME>   optional: an API key as a secret, instead of making one in Settings
