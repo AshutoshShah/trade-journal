@@ -4,10 +4,27 @@ updates:
     directory: /
     schedule:
       interval: monthly
+
   - package-ecosystem: npm
     directory: /web
     schedule:
       interval: monthly
+    groups:
+      # react and react-dom must move together; one update for both.
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+    ignore:
+      # New major versions of the chart libraries change their APIs, and CI does
+      # not open the charts. Each is ported and checked by hand.
+      - dependency-name: "lightweight-charts"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "recharts"
+        update-types: ["version-update:semver-major"]
+
   - package-ecosystem: github-actions
     directory: /
     schedule:

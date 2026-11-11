@@ -52,7 +52,7 @@ export default function ChartModal({ positions, title, onClose }) {
         crosshair: { mode: lw.CrosshairMode.Normal },
         handleScroll: true, handleScale: true,
       })
-      const series = chart.addCandlestickSeries({
+      const series = chart.addSeries(lw.CandlestickSeries, {
         upColor: T.green, downColor: T.red, borderUpColor: T.green, borderDownColor: T.red, wickUpColor: T.green, wickDownColor: T.red,
         priceFormat: { type: 'price', precision: 2, minMove: 0.25 },
       })
@@ -67,7 +67,7 @@ export default function ChartModal({ positions, title, onClose }) {
           text: fills.length <= 8 ? `${f.qty} @ ${f.price.toFixed(2)}` : '',
         }
       }).sort((a, b) => a.time - b.time)
-      series.setMarkers(markers)
+      lw.createSeriesMarkers(series, markers)
       // Open on the trades with some room either side; the rest is a drag away.
       const pad = Math.max(20 * 60, (t1 - t0) / 1000 * 0.25)
       chart.timeScale().setVisibleRange({ from: Math.floor(t0 / 1000) - pad + shift, to: Math.floor(t1 / 1000) + pad + shift })
